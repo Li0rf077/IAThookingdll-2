@@ -1,0 +1,2 @@
+#define IATHOOKINGDLL_API __declspec(dllexport)
+#define IATHOOKINGDLL_API __declspec(dllimport)
