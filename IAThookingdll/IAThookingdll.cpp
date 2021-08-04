@@ -4,9 +4,11 @@
 #include <WinUser.h>
 #include<stdio.h>
 
-void msg()
+void msg(HANDLE handl)
 {
-    MessageBox(NULL, (LPCWSTR)L"yeah!", (LPCWSTR)L"Execution Succeeded", MB_OK | MB_DEFBUTTON1 | MB_ICONASTERISK);
+    char szBuff[64];
+    sprintf_s(szBuff, "%p", handl);
+    MessageBox(NULL, (LPCWSTR)szBuff, (LPCWSTR)L"Execution Succeeded", MB_OK | MB_DEFBUTTON1 | MB_ICONASTERISK);
 }
 
 PIMAGE_IMPORT_DESCRIPTOR mappe(HMODULE hprocess)
@@ -20,7 +22,7 @@ PIMAGE_IMPORT_DESCRIPTOR mappe(HMODULE hprocess)
     return import_directory;
 }
 
-IATHOOKINGDLL_API int hook()
+ int hook()
 {
     PIMAGE_IMPORT_DESCRIPTOR import_directory;
     PIMAGE_THUNK_DATA iat_thunk, idt_thunk;
@@ -37,7 +39,7 @@ IATHOOKINGDLL_API int hook()
         char* nana = (char*)(import_directory->Name + (DWORD64)hprocess);
 
         // Find our dll
-        if (!strcmp(nana,"api-ms-win-core-errorhandling-l1-1-0.dll")) 
+        if (!strcmp(nana,"api-ms-win-core-sidebyside-l1-1-0.dll")) 
         {
             int i = 0;
             iat_thunk = (PIMAGE_THUNK_DATA)(import_directory->FirstThunk + (DWORD64)hprocess);
@@ -51,7 +53,7 @@ IATHOOKINGDLL_API int hook()
                 char* name = (char*)import_by_name->Name;
 
                 // Find wanted function to hook
-                if (strcmp(name, "GetLastError") == 0)
+                if (strcmp(name, "ReleaseActCtx") == 0)
                 {
                     // Check if function is not being called by ordinal 
                     if (!(iat_thunk->u1.Ordinal & IMAGE_ORDINAL_FLAG))
@@ -67,12 +69,12 @@ IATHOOKINGDLL_API int hook()
                         VirtualProtect(iat_thunk, 4096, PAGE_EXECUTE_READWRITE, &old);
 
                         // Change the address of GetStartupinfoW to msg()
-                        DWORD64 msg_address = (DWORD64)msg;
+                        DWORD64 msg_address = (DWORD64)&msg;
                         iat_thunk->u1.Function = msg_address;
 
                         // Return to previous permissions
-                        DWORD junk;
-                        VirtualProtect(wanted_address, 4096, old, &junk);
+                        //DWORD junk;
+                        //VirtualProtect(wanted_address, 4096, old, &junk);
 
                         return 0;
                     }
@@ -83,5 +85,5 @@ IATHOOKINGDLL_API int hook()
         }
         import_directory++;
     } 
-    return 1;
+    return 0;
 }
