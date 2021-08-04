@@ -1,3 +1,4 @@
+#pragma once
 #ifdef IATHOOKINGDLL_EXPORTS
 #define IATHOOKINGDLL_API __declspec(dllexport)
 #else
